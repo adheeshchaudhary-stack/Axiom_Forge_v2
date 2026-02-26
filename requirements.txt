@@ -1,7 +1,7 @@
 pandas
-streamlit
+streamlit>=1.35.0
 groq
 python-dotenv
 fpdf
 plotly
-altair
+altair<5.0.0
