@@ -4,3 +4,4 @@ groq
 python-dotenv
 fpdf
 plotly
+altair
