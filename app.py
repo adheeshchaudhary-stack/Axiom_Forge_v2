@@ -11,6 +11,12 @@ from fpdf import FPDF
 from groq import Groq
 
 from forensics.timestamp_check import check_timestamps
+from forensics.forensic_tools import (
+    calculate_file_hashes,
+    extract_pdf_metadata,
+    extract_image_metadata,
+    get_file_type
+)
 from main import run_portfolio_audit
 
 
@@ -421,6 +427,88 @@ def main():
     uploaded_file = st.sidebar.file_uploader(
         "Optional: Upload CSV for Audit", type=["csv"]
     )
+
+    # 🛠️ Forensic Toolbox Section
+    if uploaded_file is not None:
+        st.markdown("---")
+        st.subheader("🛠️ Forensic Metadata & Integrity")
+        
+        # Calculate file hashes
+        file_content = uploaded_file.getvalue()
+        hashes = calculate_file_hashes(file_content)
+        
+        # Display file integrity information
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**File Integrity Hashes**")
+            st.code(f"MD5: {hashes['md5']}")
+            st.code(f"SHA-256: {hashes['sha256']}")
+        
+        # Extract metadata based on file type
+        file_type = get_file_type(file_content, uploaded_file.name)
+        
+        if file_type == 'pdf':
+            with col2:
+                st.write("**PDF Metadata**")
+                pdf_metadata = extract_pdf_metadata(file_content)
+                if 'error' in pdf_metadata:
+                    st.error(pdf_metadata['error'])
+                else:
+                    metadata_text = ""
+                    if pdf_metadata['author']:
+                        metadata_text += f"**Author:** {pdf_metadata['author']}\n"
+                    if pdf_metadata['creator']:
+                        metadata_text += f"**Creator:** {pdf_metadata['creator']}\n"
+                    if pdf_metadata['creation_date']:
+                        metadata_text += f"**Creation Date:** {pdf_metadata['creation_date']}\n"
+                    if pdf_metadata['title']:
+                        metadata_text += f"**Title:** {pdf_metadata['title']}\n"
+                    if pdf_metadata['page_count']:
+                        metadata_text += f"**Page Count:** {pdf_metadata['page_count']}\n"
+                    
+                    if metadata_text:
+                        st.markdown(metadata_text)
+                    else:
+                        st.info("No metadata found in this PDF.")
+        
+        elif file_type == 'image':
+            with col2:
+                st.write("**Image Metadata (EXIF)**")
+                image_metadata = extract_image_metadata(file_content)
+                if 'error' in image_metadata:
+                    st.error(image_metadata['error'])
+                else:
+                    metadata_text = ""
+                    if image_metadata['format']:
+                        metadata_text += f"**Format:** {image_metadata['format']}\n"
+                    if image_metadata['size']:
+                        metadata_text += f"**Size:** {image_metadata['size'][0]}x{image_metadata['size'][1]}\n"
+                    if image_metadata['mode']:
+                        metadata_text += f"**Color Mode:** {image_metadata['mode']}\n"
+                    
+                    if metadata_text:
+                        st.markdown(metadata_text)
+                    
+                    # Show some key EXIF data
+                    exif_data = image_metadata.get('exif_data', {})
+                    if exif_data:
+                        st.write("**Key EXIF Data:**")
+                        key_exif = ['DateTime', 'Make', 'Model', 'Software', 'GPSInfo']
+                        exif_text = ""
+                        for key in key_exif:
+                            if key in exif_data:
+                                exif_text += f"**{key}:** {exif_data[key]}\n"
+                        
+                        if exif_text:
+                            st.markdown(exif_text)
+                        else:
+                            st.info("No key EXIF data found.")
+                    else:
+                        st.info("No EXIF data found in this image.")
+        
+        else:
+            with col2:
+                st.info(f"File type '{file_type}' not supported for metadata extraction. Hashes calculated for integrity verification.")
 
     # Sandbox Tools: in-app demo data generators
     st.sidebar.markdown("### Sandbox Tools")
