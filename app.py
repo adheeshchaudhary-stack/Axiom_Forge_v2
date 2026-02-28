@@ -10,14 +10,12 @@ from dotenv import load_dotenv
 from fpdf import FPDF
 from groq import Groq
 
-from forensics.timestamp_check import check_timestamps
 from forensics.forensic_tools import (
     calculate_file_hashes,
     extract_pdf_metadata,
     extract_image_metadata,
     get_file_type
 )
-from main import run_portfolio_audit
 
 
 load_dotenv()
@@ -187,6 +185,57 @@ Act in THREE clearly separated roles and produce a Markdown-formatted report:
             {
                 "role": "system",
                 "content": "You are a precise M&A and fraud risk analyst.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.3,
+    )
+
+    return completion.choices[0].message.content.strip()
+
+
+def get_direct_ai_insights(
+    df_string: str,
+    dataset_label: str,
+    row_count: int,
+) -> str:
+    """
+    Call Groq to generate direct forensic AI insights using GROQ_API_KEY.
+    Bypasses the complex audit engine and analyzes the raw dataframe directly.
+    """
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        return (
+            "Axiom AI Insights unavailable: GROQ_API_KEY is not configured. "
+            "Please set it in your environment or .env file."
+        )
+
+    client = Groq(api_key=api_key)
+
+    prompt = f"""
+You are a forensic investigator analyzing this dataset. Look at this data and find any anomalies in dates or locations.
+
+Dataset: {dataset_label}
+Rows analyzed: {row_count}
+
+Here is the complete dataset:
+{df_string}
+
+Please analyze this data and provide a detailed forensic report focusing on:
+1. Any suspicious patterns in dates/times
+2. Anomalies in location data
+3. Unusual transaction patterns
+4. Any other red flags that might indicate fraud or data manipulation
+
+Provide your analysis in a clear, structured format with specific examples from the data.
+"""
+
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a forensic investigator specializing in financial data analysis.",
             },
             {"role": "user", "content": prompt},
         ],
@@ -417,15 +466,14 @@ def main():
 
     # Dashboard logic only runs if authenticated
     st.title("Axiom Forge Truth OS")
-    st.subheader("Chronos-Audit Portfolio Dashboard")
+    st.subheader("Direct Forensic Analysis")
 
     st.write(
-        "Run a latency-based integrity sweep across the current transaction portfolio "
-        "to surface zero-latency fraud paradoxes."
+        "Upload a CSV file to perform direct forensic analysis bypassing complex audit logic."
     )
 
     uploaded_file = st.sidebar.file_uploader(
-        "Optional: Upload CSV for Audit", type=["csv"]
+        "Upload CSV for Direct Analysis", type=["csv"]
     )
 
     # 🛠️ Forensic Toolbox Section
@@ -510,410 +558,80 @@ def main():
             with col2:
                 st.info(f"File type '{file_type}' not supported for metadata extraction. Hashes calculated for integrity verification.")
 
-    # Sandbox Tools: in-app demo data generators
-    st.sidebar.markdown("### Sandbox Tools")
+    # Add a "Run Direct Analysis" button
+    if st.button("Run Direct Forensic Analysis"):
+        if uploaded_file is None:
+            st.warning("Please upload a CSV file first.")
+            return
 
-    if st.sidebar.button("Generate Clean Data"):
-        rows = []
-        for i in range(1, 1001):
-            lead_time = float(i * 100)
-            gap = random.uniform(2.0, 10.0)
-            payment_time = lead_time + gap
-            rows.append(
-                {
-                    "transaction_id": i,
-                    "lead_time": lead_time,
-                    "payment_time": payment_time,
-                }
-            )
-        st.session_state["sandbox_df"] = pd.DataFrame(rows)
-        st.session_state["sandbox_label"] = "Sandbox: Clean Data"
-        st.session_state["sandbox_mode"] = "clean"
-
-    if st.sidebar.button("Generate Attack Data"):
-        rows = []
-        for i in range(1, 1001):
-            lead_time = float(i * 100)
-            # 40% of rows with 0.1s latency paradox
-            if random.random() < 0.4:
-                gap = 0.1
-            else:
-                gap = random.uniform(2.0, 10.0)
-            payment_time = lead_time + gap
-            rows.append(
-                {
-                    "transaction_id": i,
-                    "lead_time": lead_time,
-                    "payment_time": payment_time,
-                }
-            )
-        st.session_state["sandbox_df"] = pd.DataFrame(rows)
-        st.session_state["sandbox_label"] = "Sandbox: Attack Data (Latency Paradox)"
-        st.session_state["sandbox_mode"] = "attack"
-
-    # Add a "Run Forensic Audit" button
-    if st.button("Run Forensic Audit"):
-        # Decide data source: sandbox data, uploaded file, or demo dataset
-        sandbox_df = st.session_state.get("sandbox_df")
-        if sandbox_df is not None:
-            df = sandbox_df.copy()
-            data_label = st.session_state.get("sandbox_label", "Sandbox data")
-        elif uploaded_file is not None:
-            try:
-                df = pd.read_csv(uploaded_file)
-            except Exception:
-                st.error(
-                    "Unable to read the uploaded file as CSV. "
-                    "Please upload a valid comma-separated values (.csv) file."
-                )
-                return
-
+        try:
+            # Direct Data Load: Read CSV directly into dataframe
+            df = pd.read_csv(uploaded_file)
+            
             if df.empty:
-                st.error(
-                    "The uploaded CSV contains no rows. "
-                    "Please provide a file with at least one transaction row."
-                )
+                st.error("The uploaded CSV contains no rows. Please provide a file with data.")
                 return
 
             data_label = f"Uploaded file: {uploaded_file.name}"
-        else:
-            df = pd.read_csv("data/transactions.csv")
-            data_label = "Demo dataset: data/transactions.csv"
 
-        # Infer forensic column mapping (Smart Mapper)
-        auto_mapping = infer_forensic_columns(df)
+            st.success("CSV loaded successfully.")
 
-        # Override logic for evidence_test.csv: if 'Date' column exists, use it for both time columns
-        if 'Date' in df.columns:
-            auto_mapping['lead_time'] = 'Date'
-            auto_mapping['payment_time'] = 'Date'
-
-        # Column Mapping UI in sidebar (with Smart Mapper + manual override)
-        st.sidebar.markdown("### Smart Mapper: Column Mapping")
-        st.sidebar.caption(
-            "Review or override how Axiom maps your columns to the forensic engine."
-        )
-        all_cols = list(df.columns)
-        options = ["(not selected)"] + all_cols
-
-        def _default_index(target: str | None) -> int:
-            if target and target in all_cols:
-                return options.index(target)
-            return 0
-
-        sel_txn = st.sidebar.selectbox(
-            "Transaction ID column",
-            options=options,
-            index=_default_index(auto_mapping.get("transaction_id")),
-        )
-        sel_lead = st.sidebar.selectbox(
-            "Lead time column",
-            options=options,
-            index=_default_index(auto_mapping.get("lead_time")),
-        )
-        sel_payment = st.sidebar.selectbox(
-            "Payment time column",
-            options=options,
-            index=_default_index(auto_mapping.get("payment_time")),
-        )
-
-        # Normalize "(not selected)" to None
-        sel_txn = None if sel_txn == "(not selected)" else sel_txn
-        sel_lead = None if sel_lead == "(not selected)" else sel_lead
-        sel_payment = None if sel_payment == "(not selected)" else sel_payment
-
-        # Final mapping after user overrides - force to use actual CSV column names
-        mapping = {
-            "transaction_id": sel_txn,
-            "lead_time": sel_lead,
-            "payment_time": sel_payment,
-        }
-
-        # Hard Override: Force mapping for evidence_test.csv
-        if 'Transaction_ID' in df.columns and 'Date' in df.columns:
-            mapping = {"transaction_id": "Transaction_ID", "lead_time": "Date", "payment_time": "Date"}
-
-        # Debug output to see what's happening
-        st.write("Debug: Mapping is", mapping)
-
-        # Show explicit mapping text
-        st.sidebar.write(
-            f'Mapping "transaction_id" to your column "{mapping["transaction_id"]}"'
-            if mapping["transaction_id"]
-            else 'Mapping "transaction_id" is not set.'
-        )
-        st.sidebar.write(
-            f'Mapping "lead_time" to your column "{mapping["lead_time"]}"'
-            if mapping["lead_time"]
-            else 'Mapping "lead_time" is not set.'
-        )
-        st.sidebar.write(
-            f'Mapping "payment_time" to your column "{mapping["payment_time"]}"'
-            if mapping["payment_time"]
-            else 'Mapping "payment_time" is not set.'
-        )
-
-        # Validate required mappings - only warn if the three keys are not present
-        if not all(key in mapping and mapping[key] is not None for key in ['transaction_id', 'lead_time', 'payment_time']):
-            if mapping["transaction_id"] is None:
-                st.warning(
-                    "Please select a transaction ID column in the Column Mapping section "
-                    "to run the audit."
-                )
-                return
-            
-            # Allow optional time columns or same column for both
-            if mapping["lead_time"] is None and mapping["payment_time"] is None:
-                st.warning(
-                    "Please select at least one time column (lead time or payment time) "
-                    "in the Column Mapping section to run the audit."
-                )
-                return
-
-        # Safety check: ensure selected time columns are numeric/datetime-like
-        # DISABLED: Commenting out numeric check to allow Date column (string dates)
-        # if mapping["lead_time"] is not None:
-        #     lead_series = df[mapping["lead_time"]]
-        #     if not (
-        #         pd.api.types.is_numeric_dtype(lead_series)
-        #         or pd.api.types.is_datetime64_any_dtype(lead_series)
-        #     ):
-        #         st.error(
-        #             "Invalid Data Type: Please ensure your selected lead time column contains numbers."
-        #         )
-        #         return
-        
-        # if mapping["payment_time"] is not None:
-        #     payment_series = df[mapping["payment_time"]]
-        #     if not (
-        #         pd.api.types.is_numeric_dtype(payment_series)
-        #         or pd.api.types.is_datetime64_any_dtype(payment_series)
-        #     ):
-        #         st.error(
-        #             "Invalid Data Type: Please ensure your selected payment time column contains numbers."
-        #         )
-        #         return
-
-        # Only run the audit if both time columns are selected
-        if mapping.get('lead_time') and mapping.get('payment_time'):
-            # Normalize to engine schema
-            normalized_df = df.copy()
-            if mapping["transaction_id"] != "transaction_id":
-                normalized_df = normalized_df.rename(
-                    columns={mapping["transaction_id"]: "transaction_id"}
-                )
-            
-            # Handle time columns - allow same column for both or optional columns
-            if mapping["lead_time"] is not None and mapping["lead_time"] != "lead_time":
-                normalized_df = normalized_df.rename(
-                    columns={mapping["lead_time"]: "lead_time"}
-                )
-            
-            if mapping["payment_time"] is not None and mapping["payment_time"] != "payment_time":
-                # If same column was selected for both, it's already renamed to "lead_time"
-                # So we need to create a copy for payment_time
-                if mapping["payment_time"] == mapping["lead_time"]:
-                    normalized_df["payment_time"] = normalized_df["lead_time"]
-                else:
-                    normalized_df = normalized_df.rename(
-                        columns={mapping["payment_time"]: "payment_time"}
-                    )
-            
-            # If only one time column is selected, create the missing one with the same values
-            # This allows the audit to run with a single time column
-            if mapping["lead_time"] is not None and mapping["payment_time"] is None:
-                normalized_df["payment_time"] = normalized_df["lead_time"]
-            elif mapping["lead_time"] is None and mapping["payment_time"] is not None:
-                normalized_df["lead_time"] = normalized_df["payment_time"]
-
-            with st.spinner("Running Chronos-Audit over selected dataset..."):
-                # Progress bar for large datasets
-                total_rows = len(normalized_df)
-                progress = st.progress(0)
-
-                # Convert Date column to datetime to handle string dates
-                if 'Date' in normalized_df.columns:
-                    normalized_df['Date'] = pd.to_datetime(normalized_df['Date'], errors='coerce')
-
-                result = run_portfolio_audit(df=normalized_df)
-
-                # Re-run per-transaction checks to build an evidence locker
-                fraud_flags = []
-                remediation_tips = []
-
-                for idx, (_, row) in enumerate(normalized_df.iterrows(), start=1):
-                    # Handle case where both lead_time and payment_time are the same Date column
-                    lead_time = row["lead_time"]
-                    payment_time = row["payment_time"]
-                    
-                    # If both are the same (zero latency case), set a small difference to avoid TypeError
-                    if lead_time == payment_time:
-                        # Use a small time difference to simulate processing time
-                        payment_time = lead_time + pd.Timedelta(seconds=0.1)
-                    
-                    res = check_timestamps(
-                        lead_created_at=lead_time,
-                        payment_processed_at=payment_time,
-                    )
-                    fraud_flags.append(res["verdict"].startswith("FRAUD ALERT"))
-                    remediation_tips.append(res["remediation_tip"])
-
-                    if total_rows:
-                        progress.progress(min(idx / total_rows, 1.0))
-
-                normalized_df["is_fraud"] = fraud_flags
-                normalized_df["remediation_tip"] = remediation_tips
-                fraud_df = normalized_df[normalized_df["is_fraud"]].copy()
-
-            st.success("Portfolio audit completed successfully.")
-
-            # Hero Section: Forensic Integrity Gauge + Risk Verdict
-            hero_col_gauge, hero_col_text = st.columns([2, 1])
-            score = result["integrity_score"]
-
-            # Determine color bands and risk verdict
-            if score >= 90:
-                risk_label = "Low Risk"
-                risk_color = "green"
-            elif score >= 70:
-                risk_label = "Caution"
-                risk_color = "gold"
-            else:
-                risk_label = "High Fraud Probability"
-                risk_color = "red"
-
-            gauge_fig = go.Figure(
-                go.Indicator(
-                    mode="gauge+number",
-                    value=score,
-                    title={"text": "Forensic Integrity Score"},
-                    gauge={
-                        "axis": {"range": [0, 100]},
-                        "bar": {"color": risk_color},
-                        "steps": [
-                            {"range": [0, 70], "color": "#ffcccc"},
-                            {"range": [70, 90], "color": "#fff4c2"},
-                            {"range": [90, 100], "color": "#d4f4dd"},
-                        ],
-                    },
-                )
-            )
-
-            with hero_col_gauge:
-                st.plotly_chart(gauge_fig, use_container_width=True)
-
-            with hero_col_text:
-                st.markdown("### Risk Verdict")
-                st.markdown(f"**{risk_label}**")
-                st.markdown(
-                    f"Current portfolio integrity is **{score:.2f}%**, "
-                    "based on Chronos-Audit latency analysis."
-                )
-
+            # The Forensic View: Create a simple table to display this data
             st.markdown("---")
             st.subheader("Data Preview")
             st.caption(data_label)
-            st.dataframe(df.head(5), use_container_width=True)
+            st.dataframe(df, use_container_width=True)
 
-            st.markdown("---")
-            st.subheader("Portfolio Integrity Score")
-            st.metric(
-                label="Integrity Score",
-                value=f"{result['integrity_score']:.2f}%",
-                delta=f"-{result['fraud_rows']} fraud-flagged"
-                if result["fraud_rows"] > 0
-                else None,
-            )
-
-            st.write(f"**Total Transactions Audited:** {result['total_rows']}")
-            st.write(f"**Fraud-Flagged Transactions:** {result['fraud_rows']}")
-
-            if result["warning"]:
-                st.error(
-                    "Solution Architect Warning\n\n"
-                    f"{result['warning']}",
-                    icon="⚠️",
-                )
-
-            with st.spinner("Consulting Axiom AI Brain..."):
-                ai_text = get_ai_insights(
-                    result=result,
-                    fraud_df=fraud_df,
+            # Bypass the Engine: Skip main.py and timestamp_check.py completely
+            # Direct AI Analysis: Send the entire dataframe as a string directly to get_ai_insights
+            
+            # Convert dataframe to string for AI analysis
+            df_string = df.to_string()
+            
+            # Create a simplified result structure for the AI function
+            result = {
+                'total_rows': len(df),
+                'fraud_rows': 0,  # We're not running the fraud detection engine
+                'integrity_score': 100.0,  # Placeholder since we're bypassing the engine
+            }
+            
+            # Create empty fraud_df since we're not running the fraud detection engine
+            fraud_df = pd.DataFrame()
+            
+            with st.spinner("Consulting Axiom AI Brain for direct forensic analysis..."):
+                # Direct AI Analysis: Send the entire dataframe as a string directly to the get_ai_insights function
+                # Tell the AI: 'You are a forensic investigator. Look at this data and find any anomalies in dates or locations.'
+                ai_text = get_direct_ai_insights(
+                    df_string=df_string,
                     dataset_label=data_label,
-                    row_count=len(normalized_df),
+                    row_count=len(df),
                 )
 
             st.info(ai_text)
 
             st.markdown("---")
-            st.subheader("Fraud Evidence Locker")
+            st.subheader("Forensic Findings")
 
-            if fraud_df.empty:
-                st.info("No fraud-flagged transactions detected in the current portfolio.")
+            if df.empty:
+                st.info("No data to analyze.")
             else:
-                # Highlight lead_time and payment_time to show the 0.1s gap clearly
-                display_cols = ["transaction_id", "lead_time", "payment_time"]
-                styled = fraud_df[display_cols].style.set_properties(
-                    subset=["lead_time", "payment_time"],
-                    **{"background-color": "#ffe6e6", "font-weight": "bold"},
-                )
-                st.dataframe(styled, use_container_width=True)
+                # Display basic statistics
+                st.write(f"**Total Rows:** {len(df)}")
+                st.write(f"**Total Columns:** {len(df.columns)}")
+                st.write(f"**Column Names:** {', '.join(df.columns)}")
 
-                # Per-transaction expanders with remediation tips
-                for _, row in fraud_df.iterrows():
-                    header = f"Transaction {int(row['transaction_id'])} – Detailed View"
-                    with st.expander(header):
-                        st.write(f"**Lead Time:** {row['lead_time']}")
-                        st.write(f"**Payment Time:** {row['payment_time']}")
-                        st.write(
-                            f"**Latency:** {row['payment_time'] - row['lead_time']:.3f} seconds"
-                        )
-                        st.write(f"**Remediation Tip:** {row['remediation_tip']}")
+                # Show data types
+                st.write("**Data Types:**")
+                st.write(df.dtypes)
 
-            st.markdown("---")
+                # Show basic statistics for numeric columns
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                if len(numeric_cols) > 0:
+                    st.write("**Basic Statistics for Numeric Columns:**")
+                    st.write(df[numeric_cols].describe())
 
-            # 💰 Forensic Valuation Impact Section
-            st.subheader("💰 Forensic Valuation Impact")
-
-            # Calculate metrics
-            total_deal_value = 300_000_000  # $300M
-            high_risk_count = len(fraud_df[fraud_df['risk_score'] > 80]) if 'risk_score' in fraud_df.columns else 0
-            potential_haircut = high_risk_count * 300_000  # $300k per flagged item
-
-            # Display metrics in two columns
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(
-                    label="High-Risk Items",
-                    value=f"{high_risk_count}",
-                    delta=f"{(high_risk_count / len(normalized_df) * 100):.1f}%" if len(normalized_df) > 0 else "0%"
-                )
-            with col2:
-                st.metric(
-                    label="Potential Haircut",
-                    value=f"${potential_haircut:,.0f}",
-                    delta=f"{(potential_haircut / total_deal_value * 100):.1f}% of deal"
-                )
-
-            # Warning if haircut exceeds $10M
-            if potential_haircut > 10_000_000:
-                st.warning(
-                    f"⚠️ **High Risk Alert**: Potential haircut of ${potential_haircut:,.0f} "
-                    f"exceeds the $10M threshold. Consider deeper due diligence."
-                )
-
-            st.markdown("---")
-
-            pdf_bytes = build_audit_pdf(result, ai_text, fraud_df, full_df=normalized_df, potential_haircut=potential_haircut)
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            filename = f"Axiom_Audit_{timestamp}.pdf"
-            st.download_button(
-                label="Download Official Audit PDF",
-                data=pdf_bytes,
-                file_name=filename,
-                mime="application/pdf",
-                icon="📄",
-            )
+        except Exception as e:
+            st.error(f"Error processing the uploaded file: {str(e)}")
 
     # Global reset and logout controls at bottom of sidebar
     if st.sidebar.button("Clear All Data & Reset"):
