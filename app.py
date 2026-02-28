@@ -549,6 +549,100 @@ def _handle_login():
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
 
+    # Custom CSS for OneText Theme Micro-Interactions
+    st.markdown("""
+    <style>
+    /* Fade-In-Up Animation for Main Content */
+    .main-content {
+        animation: fadeInUp 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Pulse Effect for BREACH DETECTED */
+    .breach-pulse {
+        animation: pulse 3s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        }
+        70% {
+            transform: scale(1.02);
+            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+    }
+    
+    /* Smooth Hover Effects for Buttons */
+    .stButton > button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    .stButton > button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+    }
+    
+    /* Centered Title Styling */
+    .title-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .title-container h1 {
+        margin-bottom: 10px;
+    }
+    
+    .title-divider {
+        width: 60px;
+        height: 2px;
+        background-color: #3B82F6;
+        margin: 10px auto;
+        border-radius: 1px;
+    }
+    
+    /* Verification Badge Styling */
+    .verification-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: center;
+        margin: 10px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .badge-stable {
+        background-color: #10b981;
+        color: #065f46;
+        border: 1px solid #059669;
+    }
+    
+    .badge-breach {
+        background-color: #ef4444;
+        color: #7f1d1d;
+        border: 1px solid #dc2626;
+        animation: pulse 3s infinite;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # Initialize chat messages in session state if not already present
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -591,8 +685,12 @@ def main():
         st.stop()
 
     # Dashboard logic only runs if authenticated
+    # Centered Title with Horizontal Rule
+    st.markdown('<div class="title-container">', unsafe_allow_html=True)
     st.title("Axiom Forge Truth OS")
-    st.subheader("Direct Forensic Analysis")
+    st.markdown('<div class="title-divider"></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align: center; color: #94a3b8; margin-bottom: 30px;">Direct Forensic Analysis</div>', unsafe_allow_html=True)
 
     st.write(
         "Upload a CSV or PDF file to perform direct forensic analysis bypassing complex audit logic."
@@ -728,7 +826,13 @@ def main():
             # Create empty fraud_df since we're not running the fraud detection engine
             fraud_df = pd.DataFrame()
             
-            with st.spinner("Consulting Axiom AI Brain for direct forensic analysis..."):
+            # Use st.status for the analysis phase with scanning animation
+            with st.status("Scanning data for anomalies...", expanded=True) as status:
+                st.write("🔍 Analyzing transaction patterns...")
+                st.write("📊 Checking date/time consistency...")
+                st.write("📍 Validating location data...")
+                st.write("🔎 Searching for suspicious patterns...")
+                
                 # Direct AI Analysis: Send the entire dataframe as a string directly to the get_ai_insights function
                 # Tell the AI: 'You are a forensic investigator. Look at this data and find any anomalies in dates or locations.'
                 ai_text = get_direct_ai_insights(
@@ -736,6 +840,8 @@ def main():
                     dataset_label=data_label,
                     row_count=len(df),
                 )
+                
+                status.update(label="Analysis complete!", state="complete", expanded=False)
 
             # Verification Badge System
             status_text, css_class = get_verification_status(ai_text)
