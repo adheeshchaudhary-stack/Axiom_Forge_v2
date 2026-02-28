@@ -1,5 +1,6 @@
 import io
 import os
+from typing import Any
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
@@ -46,6 +47,14 @@ def get_verification_status(ai_text: str) -> tuple[str, str]:
 
 def main():
     st.title("Axiom Forge Truth OS")
+    
+    # API Status Indicator in Sidebar
+    api_key = os.getenv('GROQ_API_KEY')
+    if api_key:
+        st.sidebar.success("Key Loaded ✓")
+    else:
+        st.sidebar.error("Key Not Found ✗")
+    
     uploaded_file = st.sidebar.file_uploader("Upload Evidence", type=["csv", "pdf"])
 
     if uploaded_file:
