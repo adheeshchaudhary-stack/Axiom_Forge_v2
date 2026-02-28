@@ -6,6 +6,7 @@ from io import BytesIO
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import pdfplumber
 from dotenv import load_dotenv
 from fpdf import FPDF
 from groq import Groq
@@ -502,11 +503,11 @@ def main():
     st.subheader("Direct Forensic Analysis")
 
     st.write(
-        "Upload a CSV file to perform direct forensic analysis bypassing complex audit logic."
+        "Upload a CSV or PDF file to perform direct forensic analysis bypassing complex audit logic."
     )
 
     uploaded_file = st.sidebar.file_uploader(
-        "Upload CSV for Direct Analysis", type=["csv"]
+        "Upload CSV or PDF for Direct Analysis", type=["csv", "pdf"]
     )
 
     # 🛠️ Forensic Toolbox Section
@@ -690,9 +691,26 @@ def main():
                 # Get current data context
                 if uploaded_file is not None:
                     try:
-                        df = pd.read_csv(uploaded_file)
-                        df_string = df.to_string()
-                        data_context = f"Current data ({uploaded_file.name}):\n{df_string}\n\n"
+                        file_content = uploaded_file.getvalue()
+                        file_type = get_file_type(file_content, uploaded_file.name)
+                        
+                        if file_type == 'csv':
+                            # Handle CSV files
+                            df = pd.read_csv(uploaded_file)
+                            df_string = df.to_string()
+                            data_context = f"Current data ({uploaded_file.name}):\n{df_string}\n\n"
+                        elif file_type == 'pdf':
+                            # Handle PDF files with pdfplumber
+                            with pdfplumber.open(BytesIO(file_content)) as pdf:
+                                pdf_text = ""
+                                for page in pdf.pages:
+                                    text = page.extract_text()
+                                    if text:
+                                        pdf_text += text + "\n"
+                            
+                            data_context = f"Current PDF ({uploaded_file.name}):\n{pdf_text}\n\n"
+                        else:
+                            data_context = f"Current file ({uploaded_file.name}): Unsupported file type for text extraction.\n\n"
                     except Exception as e:
                         data_context = f"Error loading data: {str(e)}\n\n"
                 else:
