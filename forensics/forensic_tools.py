@@ -1,52 +1,98 @@
 import hashlib
-import io
-from typing import Dict, Any, Optional
-from pypdf import PdfReader
-from PIL import Image, ExifTags
+import os
+from typing import Dict, Any
+from PyPDF2 import PdfReader
+from PIL import Image
+from PIL.ExifTags import TAGS
 
-def calculate_file_hashes(file_content: Any) -> Dict[str, str]:
-    # FORCE TO BYTES: Essential fix for hashlib compatibility
-    data = bytes(file_content)
+def calculate_file_hashes(file_content: bytes) -> Dict[str, str]:
+    """Calculate MD5 and SHA-256 hashes of file content."""
+    # Ensure content is bytes
+    if isinstance(file_content, bytearray):
+        file_content = bytes(file_content)
+    
+    md5_hash = hashlib.md5(file_content).hexdigest()
+    sha256_hash = hashlib.sha256(file_content).hexdigest()
+    
     return {
-        'md5': hashlib.md5(data).hexdigest(),
-        'sha256': hashlib.sha256(data).hexdigest()
+        'md5': md5_hash,
+        'sha256': sha256_hash
     }
 
-def extract_pdf_metadata(file_content: Any) -> Dict[str, Any]:
-    metadata = {'author': None, 'creator': None, 'creation_date': None, 'title': None, 'page_count': 0}
-    try:
-        data = bytes(file_content)
-        pdf_reader = PdfReader(io.BytesIO(data))
-        if pdf_reader.metadata:
-            info = pdf_reader.metadata
-            metadata['author'] = getattr(info, 'author', None)
-            metadata['creator'] = getattr(info, 'creator', None)
-            metadata['title'] = getattr(info, 'title', None)
-        metadata['page_count'] = len(pdf_reader.pages)
-    except Exception as e:
-        metadata['error'] = f"PDF Error: {str(e)}"
-    return metadata
+def get_file_type(file_content: bytes, file_name: str) -> str:
+    """Determine file type based on content and extension."""
+    # Ensure content is bytes
+    if isinstance(file_content, bytearray):
+        file_content = bytes(file_content)
+    
+    # Check file extension first
+    if file_name.lower().endswith('.pdf'):
+        return 'PDF'
+    elif file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+        return 'Image'
+    elif file_name.lower().endswith('.csv'):
+        return 'CSV'
+    elif file_name.lower().endswith('.txt'):
+        return 'Text'
+    
+    # Fallback to magic numbers
+    if file_content.startswith(b'%PDF'):
+        return 'PDF'
+    elif file_content.startswith(b'\x89PNG'):
+        return 'Image'
+    elif file_content.startswith(b'\xff\xd8\xff'):
+        return 'Image'
+    elif b',' in file_content[:100]:  # Simple CSV detection
+        return 'CSV'
+    
+    return 'Unknown'
 
-def extract_image_metadata(file_content: Any) -> Dict[str, Any]:
-    metadata = {'format': None, 'size': None, 'exif_data': {}}
+def extract_pdf_metadata(file_content: bytes) -> Dict[str, Any]:
+    """Extract metadata from PDF files."""
+    # Ensure content is bytes
+    if isinstance(file_content, bytearray):
+        file_content = bytes(file_content)
+    
     try:
-        data = bytes(file_content)
-        image = Image.open(io.BytesIO(data))
-        metadata['format'] = image.format
-        metadata['size'] = image.size
-        if hasattr(image, '_getexif') and image._getexif():
-            exif = image._getexif()
-            for tag_id, value in exif.items():
-                tag = ExifTags.TAGS.get(tag_id, tag_id)
-                metadata['exif_data'][str(tag)] = str(value)
+        pdf_reader = PdfReader(io.BytesIO(file_content))
+        metadata = pdf_reader.metadata
+        
+        if metadata:
+            return {
+                'title': metadata.get('/Title', 'N/A'),
+                'author': metadata.get('/Author', 'N/A'),
+                'creator': metadata.get('/Creator', 'N/A'),
+                'producer': metadata.get('/Producer', 'N/A'),
+                'creation_date': metadata.get('/CreationDate', 'N/A'),
+                'modification_date': metadata.get('/ModDate', 'N/A'),
+                'pages': len(pdf_reader.pages)
+            }
+        else:
+            return {'error': 'No metadata found'}
     except Exception as e:
-        metadata['error'] = f"Image Error: {str(e)}"
-    return metadata
+        return {'error': f'Failed to extract PDF metadata: {str(e)}'}
 
-def get_file_type(file_content: Any, file_name: str = "") -> str:
-    data = bytes(file_content)
-    if file_name.lower().endswith('.pdf') or data.startswith(b'%PDF'):
-        return 'pdf'
-    elif any(file_name.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png']) or data.startswith((b'\x89PNG', b'\xFF\xD8\xFF')):
-        return 'image'
-    return 'unknown'
+def extract_image_metadata(file_content: bytes) -> Dict[str, Any]:
+    """Extract metadata from image files."""
+    # Ensure content is bytes
+    if isinstance(file_content, bytearray):
+        file_content = bytes(file_content)
+    
+    try:
+        image = Image.open(io.BytesIO(file_content))
+        exifdata = image.getexif()
+        
+        metadata = {}
+        for tag_id in exifdata:
+            tag = TAGS.get(tag_id, tag_id)
+            data = exifdata.get(tag_id)
+            if isinstance(data, bytes):
+                data = data.decode('utf-8', errors='ignore')
+            metadata[tag] = data
+        
+        return metadata
+    except Exception as e:
+        return {'error': f'Failed to extract image metadata: {str(e)}'}
+
+# Import required modules
+import io
