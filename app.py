@@ -245,6 +245,35 @@ Provide your analysis in a clear, structured format with specific examples from 
     return completion.choices[0].message.content.strip()
 
 
+def get_chat_ai_response(prompt: str) -> str:
+    """
+    Call Groq to generate chat responses using GROQ_API_KEY.
+    Connects to Llama 3.3 model for conversational AI responses.
+    """
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        return (
+            "Axiom AI Chat unavailable: GROQ_API_KEY is not configured. "
+            "Please set it in your environment or .env file."
+        )
+
+    client = Groq(api_key=api_key)
+
+    completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a forensic investigator AI assistant. Provide helpful, accurate, and professional responses to forensic analysis questions. Focus on data analysis, pattern recognition, and anomaly detection in financial and transactional data.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.3,
+    )
+
+    return completion.choices[0].message.content.strip()
+
+
 def infer_forensic_columns(df: pd.DataFrame) -> dict:
     """
     Best-effort mapping from arbitrary column names to our forensic engine schema.
@@ -430,6 +459,10 @@ def _handle_login():
 
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
+
+    # Initialize chat messages in session state if not already present
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
     # Authentication check at the very beginning
     if not st.session_state.get("password_correct", False):
@@ -632,6 +665,54 @@ def main():
 
         except Exception as e:
             st.error(f"Error processing the uploaded file: {str(e)}")
+
+    # Chat Interface Section
+    st.markdown("---")
+    st.subheader("🤖 Forensic AI Chat")
+
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Chat input at the bottom
+    if prompt := st.chat_input("Ask the Forensic AI a question about the data..."):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Generate AI response
+        with st.chat_message("assistant"):
+            with st.spinner("Analyzing your question..."):
+                # Get current data context
+                if uploaded_file is not None:
+                    try:
+                        df = pd.read_csv(uploaded_file)
+                        df_string = df.to_string()
+                        data_context = f"Current data ({uploaded_file.name}):\n{df_string}\n\n"
+                    except Exception as e:
+                        data_context = f"Error loading data: {str(e)}\n\n"
+                else:
+                    data_context = "No data uploaded yet.\n\n"
+
+                # Combine data context with user question
+                full_prompt = f"""You are a forensic investigator. Here is the current data context:
+
+{data_context}
+
+User question: {prompt}
+
+Please provide a detailed forensic analysis focusing on the specific question asked. If no data is available, explain what analysis would be possible once data is uploaded."""
+
+                # Get AI response using Groq
+                ai_response = get_chat_ai_response(full_prompt)
+                st.markdown(ai_response)
+        
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
     # Global reset and logout controls at bottom of sidebar
     if st.sidebar.button("Clear All Data & Reset"):
