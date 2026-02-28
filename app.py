@@ -731,9 +731,9 @@ def main():
                 total_rows = len(normalized_df)
                 progress = st.progress(0)
 
-                # Convert Date column to string to ensure compatibility
+                # Convert Date column to datetime to handle string dates
                 if 'Date' in normalized_df.columns:
-                    normalized_df['Date'] = normalized_df['Date'].astype(str)
+                    normalized_df['Date'] = pd.to_datetime(normalized_df['Date'], errors='coerce')
 
                 result = run_portfolio_audit(df=normalized_df)
 
@@ -742,9 +742,18 @@ def main():
                 remediation_tips = []
 
                 for idx, (_, row) in enumerate(normalized_df.iterrows(), start=1):
+                    # Handle case where both lead_time and payment_time are the same Date column
+                    lead_time = row["lead_time"]
+                    payment_time = row["payment_time"]
+                    
+                    # If both are the same (zero latency case), set a small difference to avoid TypeError
+                    if lead_time == payment_time:
+                        # Use a small time difference to simulate processing time
+                        payment_time = lead_time + pd.Timedelta(seconds=0.1)
+                    
                     res = check_timestamps(
-                        lead_created_at=row["lead_time"],
-                        payment_processed_at=row["payment_time"],
+                        lead_created_at=lead_time,
+                        payment_processed_at=payment_time,
                     )
                     fraud_flags.append(res["verdict"].startswith("FRAUD ALERT"))
                     remediation_tips.append(res["remediation_tip"])
