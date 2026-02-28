@@ -1,4 +1,4 @@
-Transaction_ID,Amount,payment_time,Location
+Transaction_ID,Amount,Date,Location
 TXN-2025-001,1250.75,2025-03-15,New York, USA
 TXN-2025-002,899.99,2025-06-22,London, UK
 TXN-2025-003,2150.00,2025-09-08,Tokyo, Japan
