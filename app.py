@@ -549,11 +549,11 @@ def _handle_login():
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
 
-    # Custom CSS for OneText Theme Micro-Interactions
+    # Custom CSS for OneText Theme Micro-Interactions - Force load at top
     st.markdown("""
     <style>
-    /* Fade-In-Up Animation for Main Content */
-    .main-content {
+    /* Force animations on entire page */
+    [data-testid="stAppViewContainer"] {
         animation: fadeInUp 0.5s ease-in-out;
     }
     
@@ -588,9 +588,10 @@ def main():
         }
     }
     
-    /* Smooth Hover Effects for Buttons */
+    /* OneText Polish: Pill-shaped buttons with smooth transitions */
     .stButton > button {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border-radius: 20px !important;
+        transition: all 0.3s ease !important;
     }
     
     .stButton > button:hover {
