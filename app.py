@@ -569,9 +569,17 @@ def get_verification_status(ai_text: str) -> tuple[str, str]:
         return "SYSTEM STABLE", "badge-stable"
     
     ai_lower = ai_text.lower()
-    breach_indicators = ['breach', 'hack', 'fraud', 'suspicious', 'anomaly', 'malicious', 'compromised']
+    # Only trigger on actual forensic indicators, not generic words like "error"
+    breach_indicators = ['breach', 'hack', 'fraud', 'suspicious', 'anomaly', 'malicious', 'compromised', 'unauthorized']
+    # Exclude common words that might appear in tracebacks or error messages
+    exclude_words = ['error', 'traceback', 'exception', 'syntax', 'indentation', 'nameerror', 'typeerror', 'valueerror']
     
-    if any(indicator in ai_lower for indicator in breach_indicators):
+    # Check if any breach indicators are present (excluding common error words)
+    has_breach_indicators = any(indicator in ai_lower for indicator in breach_indicators)
+    has_exclude_words = any(word in ai_lower for word in exclude_words)
+    
+    # Only trigger breach detection if we have actual breach indicators and not just error words
+    if has_breach_indicators and not (has_exclude_words and not any(indicator in ai_lower for indicator in ['breach', 'hack', 'fraud', 'malicious', 'unauthorized'])):
         return "BREACH DETECTED", "badge-breach"
     else:
         return "SYSTEM STABLE", "badge-stable"
@@ -601,7 +609,7 @@ def main():
         100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
     }
     .main .block-container {
-        background-color: #EFEEE3;
+        background-color: #EFEEE3 !important;
         animation: oneTextReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     [data-testid="stSidebar"] {
@@ -687,7 +695,7 @@ def main():
         st.subheader("🛠️ Forensic Metadata & Integrity")
         
         # Calculate file hashes - The Hashing Fix: Pass raw uploaded_file.getvalue() directly into hashlib.sha256(). Do NOT encode it.
-        file_content = uploaded_file.getvalue() # This is a bytearray
+        file_content = bytes(uploaded_file.getvalue()) # This is a bytearray converted to bytes
         # Ensure the hashing tool handles the bytearray directly
         hashes = calculate_file_hashes(file_content)
         
