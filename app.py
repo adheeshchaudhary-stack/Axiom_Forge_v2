@@ -549,57 +549,73 @@ def _handle_login():
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
 
-    # Custom CSS for Dark Web Forensic Theme
+    # Custom CSS for Light Theme Forensic Interface
     st.markdown("""
     <style>
-    /* Dark Web Theme */
+    /* Light Theme Forensic Interface */
     .stApp {
-        background-color: #0e1117;
-        color: #ffffff;
-    }
-    
-    /* Neon Green Accents for Clean Data */
-    .clean-data {
-        color: #00ff00;
-        font-weight: bold;
-    }
-    
-    /* Flashing Red Borders for Suspicious Data */
-    .suspicious-data {
-        border: 2px solid #ff0000;
-        animation: pulse 1s infinite;
-        background-color: rgba(255, 0, 0, 0.1);
-    }
-    
-    @keyframes pulse {
-        0% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
-        50% { border-color: #ffffff; box-shadow: 0 0 15px #ffffff; }
-        100% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+        background-color: #F7F39A; /* Soft Cream/Yellow - like high-quality paper */
+        color: #346473; /* Deep Slate Blue for main text */
     }
     
     /* Sidebar Styling */
     .css-1d391kg {
-        background-color: #1a1d24;
+        background-color: #A3DE83; /* Sage Green for sidebar */
     }
     
-    /* Headers */
+    /* Headers - Primary Accents */
     h1, h2, h3, h4, h5, h6 {
-        color: #ffffff;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        color: #38817A; /* Teal/Dark Green for headers and branding */
+        text-shadow: none;
     }
     
-    /* Buttons */
+    /* Subheaders and Secondary Text */
+    .stSubheader, .stCaption, .secondary-text {
+        color: #346473; /* Deep Slate Blue for subheaders and secondary elements */
+    }
+    
+    /* Buttons - Primary Accents */
     .stButton > button {
-        background-color: #1a1d24;
-        border: 1px solid #00ff00;
-        color: #00ff00;
+        background-color: #38817A; /* Teal/Dark Green for primary buttons */
+        border: 2px solid #38817A;
+        color: white;
+        border-radius: 8px;
         transition: all 0.3s ease;
+        font-weight: bold;
     }
     
     .stButton > button:hover {
-        background-color: #00ff00;
-        color: #0e1117;
-        box-shadow: 0 0 10px #00ff00;
+        background-color: white;
+        color: #38817A;
+        border: 2px solid #38817A;
+        box-shadow: 0 4px 8px rgba(56, 129, 122, 0.3);
+    }
+    
+    /* Card Containers for Analysis Reports */
+    .analysis-card {
+        background-color: white;
+        border: 2px solid #38817A;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(56, 129, 122, 0.1);
+    }
+    
+    /* Chat Input Box */
+    .stTextInput > div > div > input {
+        background-color: #FFFFFF; /* White chat input */
+        border: 2px solid #38817A;
+        border-radius: 8px;
+        color: #346473;
+    }
+    
+    /* Chat Message Styling */
+    .stChatMessage {
+        background-color: #FFFFFF;
+        border: 1px solid #38817A;
+        border-radius: 12px;
+        padding: 15px;
+        margin: 10px 0;
     }
     
     /* Verification Badge Styles */
@@ -609,27 +625,35 @@ def main():
         font-weight: bold;
         font-size: 14px;
         text-align: center;
+        border: 2px solid #38817A;
+        background-color: white;
+        color: #38817A;
+        box-shadow: 0 2px 4px rgba(56, 129, 122, 0.2);
     }
     
-    .badge-stable {
-        background-color: #00ff00;
-        color: #0e1117;
-        border: 2px solid #00ff00;
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    /* Code Blocks and Data Display */
+    .stCodeBlock, .stDataFrame, .stTable {
+        background-color: white;
+        border: 1px solid #38817A;
+        border-radius: 8px;
     }
     
-    .badge-breach {
-        background-color: #ff0000;
-        color: #ffffff;
-        border: 2px solid #ff0000;
-        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-        animation: blink 1s infinite;
+    /* Sidebar Text */
+    .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3, .css-1d391kg h4, .css-1d391kg h5, .css-1d391kg h6 {
+        color: #38817A;
     }
     
-    @keyframes blink {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
+    /* Sidebar Buttons */
+    .css-1d391kg .stButton > button {
+        background-color: #38817A;
+        border: 2px solid #38817A;
+        color: white;
+    }
+    
+    .css-1d391kg .stButton > button:hover {
+        background-color: #A3DE83;
+        color: #38817A;
+        border: 2px solid #38817A;
     }
     </style>
     """, unsafe_allow_html=True)
