@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from groq import Groq
-from forensics.forensic_tools import calculate_file_hashes, extract_pdf_metadata, get_file_type
+from forensics.forensic_tools import calculate_file_hashes, get_file_type
 
 # Load environment variables at the very top
 load_dotenv()

@@ -1,9 +1,7 @@
 import hashlib
 import os
 from typing import Dict, Any
-from PyPDF2 import PdfReader
-from PIL import Image
-from PIL.ExifTags import TAGS
+from pypdf import PdfReader
 
 def calculate_file_hashes(file_content: bytes) -> Dict[str, str]:
     """Calculate MD5 and SHA-256 hashes of file content."""
@@ -78,21 +76,8 @@ def extract_image_metadata(file_content: bytes) -> Dict[str, Any]:
     if isinstance(file_content, bytearray):
         file_content = bytes(file_content)
     
-    try:
-        image = Image.open(io.BytesIO(file_content))
-        exifdata = image.getexif()
-        
-        metadata = {}
-        for tag_id in exifdata:
-            tag = TAGS.get(tag_id, tag_id)
-            data = exifdata.get(tag_id)
-            if isinstance(data, bytes):
-                data = data.decode('utf-8', errors='ignore')
-            metadata[tag] = data
-        
-        return metadata
-    except Exception as e:
-        return {'error': f'Failed to extract image metadata: {str(e)}'}
+    # Image metadata extraction not available (PIL not in approved libraries)
+    return {'error': 'Image metadata extraction not available - PIL not in approved libraries'}
 
 # Import required modules
 import io
