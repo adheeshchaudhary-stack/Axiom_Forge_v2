@@ -1,0 +1,30 @@
+
+METADATA TRAP DOCUMENTATION
+===========================
+
+File: metadata_trap.csv
+Created: 2026-02-28 12:56:45
+
+Content:
+- Transaction_ID: TXN-999
+- Amount: 5000.00
+- Date: 2025-05-20
+- Location: Miami, USA
+
+Metadata Trap Properties:
+- Author: Admin-99
+- Creation Date: 2026-12-25 (Future date - RED FLAG)
+- Internal_Note: Authorized via Proxy-77
+
+Purpose:
+This file is designed to test the forensic system's ability to detect:
+1. Future creation dates (impossible)
+2. Hidden metadata fields
+3. Connection between metadata and content
+4. Cross-references with other files (like ghost_test.pdf)
+
+Detection Points:
+- File created in future (2026-12-25)
+- Author field matches Admin-99 from ghost_test.pdf
+- Internal_Note references Proxy-77 (potential connection)
+- Location "Miami, USA" may correlate with other files

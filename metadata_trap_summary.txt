@@ -1,0 +1,31 @@
+METADATA TRAP SUMMARY
+====================
+
+File: metadata_trap.csv
+Created: 2026-02-28
+
+Content Analysis:
+- Transaction_ID: TXN-999
+- Amount: $5,000.00
+- Date: May 20, 2025
+- Location: Miami, USA
+
+Metadata Analysis:
+- Creation Date: December 25, 2026 (IMPOSSIBLE - Future Date)
+- Last Modified: December 25, 2026 (IMPOSSIBLE - Future Date)
+- Author: Admin-99 (matches ghost_test.pdf)
+- Internal Note: "Authorized via Proxy-77"
+
+Forensic Red Flags:
+1. Future creation date (physically impossible)
+2. Author matches Admin-99 from ghost_test.pdf
+3. Internal note references "Proxy-77" (potential connection)
+4. Location "Miami, USA" may correlate with other files
+5. Transaction amount $5,000.00 is significant but not suspicious alone
+
+Detection Strategy:
+- Upload alongside ghost_test.pdf
+- System should detect future date anomaly
+- System should connect Admin-99 author across files
+- System should flag Proxy-77 reference
+- AI should identify cross-file connections

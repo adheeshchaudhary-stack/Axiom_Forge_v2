@@ -708,7 +708,15 @@ def main():
                                     if text:
                                         pdf_text += text + "\n"
                             
-                            data_context = f"Current PDF ({uploaded_file.name}):\n{pdf_text}\n\n"
+                                # Extract PDF metadata
+                                metadata = pdf.metadata if pdf.metadata else {}
+                                metadata_text = ""
+                                if metadata:
+                                    metadata_text = "\nPDF Metadata:\n"
+                                    for key, value in metadata.items():
+                                        metadata_text += f"  {key}: {value}\n"
+                            
+                            data_context = f"Current PDF ({uploaded_file.name}):\n{pdf_text}\n{metadata_text}\n"
                         else:
                             data_context = f"Current file ({uploaded_file.name}): Unsupported file type for text extraction.\n\n"
                     except Exception as e:

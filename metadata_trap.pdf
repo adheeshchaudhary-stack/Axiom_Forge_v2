@@ -1,0 +1,214 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+/F2 6 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 1200
+>>
+stream
+BT
+/FontName /Helvetica def
+/F1 48 Tf
+100 720 Td
+(Metadata Trap Test) Tj
+ET
+
+BT
+/F1 24 Tf
+100 680 Td
+(Forensic Analysis File) Tj
+ET
+
+BT
+/F2 16 Tf
+100 640 Td
+(Date: 2025-05-20) Tj
+ET
+
+BT
+/F2 16 Tf
+100 610 Td
+(Transaction ID: TXN-999) Tj
+ET
+
+BT
+/F2 16 Tf
+100 580 Td
+(Amount: $5,000.00) Tj
+ET
+
+BT
+/F2 16 Tf
+100 550 Td
+(Location: Miami, USA) Tj
+ET
+
+BT
+/F2 16 Tf
+100 520 Td
+(Status: Authorized) Tj
+ET
+
+BT
+/F2 16 Tf
+100 490 Td
+(Reference: Internal Audit) Tj
+ET
+
+BT
+/F2 16 Tf
+100 460 Td
+(Verified: Yes) Tj
+ET
+
+BT
+/F2 16 Tf
+100 430 Td
+(Approved By: System Admin) Tj
+ET
+
+BT
+/F2 16 Tf
+100 400 Td
+(Notes: Standard transaction) Tj
+ET
+
+BT
+/F2 16 Tf
+100 370 Td
+(Record Type: Financial) Tj
+ET
+
+BT
+/F2 16 Tf
+100 340 Td
+(Category: Test File) Tj
+ET
+
+BT
+/F2 16 Tf
+100 310 Td
+(Priority: Normal) Tj
+ET
+
+BT
+/F2 16 Tf
+100 280 Td
+(Confidentiality: Internal) Tj
+ET
+
+BT
+/F2 16 Tf
+100 250 Td
+(Expiration: None) Tj
+ET
+
+BT
+/F2 16 Tf
+100 220 Td
+(Version: 1.0) Tj
+ET
+
+BT
+/F2 16 Tf
+100 190 Td
+(Created: 2025-05-20) Tj
+ET
+
+BT
+/F2 16 Tf
+100 160 Td
+(Modified: 2025-05-20) Tj
+ET
+
+BT
+/F2 16 Tf
+100 130 Td
+(Owner: Admin-99) Tj
+ET
+
+BT
+/F2 16 Tf
+100 100 Td
+(Dept: Forensic Testing) Tj
+ET
+
+% Hidden white text at the bottom
+0 g
+100 50 Td
+(INTERNAL_LOG: Route via Proxy-77. Authorization Hash: 0xDEADBEEF) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+>>
+endobj
+
+6 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+>>
+endobj
+
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000287 00000 n 
+0000001150 00000 n 
+0000001201 00000 n 
+trailer
+<<
+/Size 7
+/Root 1 0 R
+/Info << 
+/Author (Admin-99)
+/CreationDate (D:20261225000000+00'00')
+/ModDate (D:20261225000000+00'00')
+/Title (Metadata Trap Test)
+/Subject (Forensic Analysis File)
+/Producer (Python PDF Generator)
+>>
+>>
+startxref
+1252
+%%EOF
