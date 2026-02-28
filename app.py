@@ -18,11 +18,53 @@ from forensics.forensic_tools import (
     get_file_type
 )
 
+import io
+
+def process_upload(uploaded_file):
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            # Use io.BytesIO to wrap the bytearray so pandas can read it
+            df = pd.read_csv(io.BytesIO(uploaded_file.getvalue()))
+            return df.to_string()
+        elif uploaded_file.name.endswith('.pdf'):
+            # Use io.BytesIO so pdfplumber can treat it like a file
+            with pdfplumber.open(io.BytesIO(uploaded_file.getvalue())) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    text += page.extract_text()
+            return text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
 
 load_dotenv()
 
 DEMO_USERNAME = "Admin"
 DEMO_PASSWORD = "Axiom99"
+
+# Force the Animation
+st.markdown("""
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .main .block-container {
+        animation: fadeInUp 1s ease-out;
+    }
+    /* OneText Pill Buttons */
+    .stButton>button {
+        border-radius: 50px !important;
+        border: 1px solid #1937AD !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton>button:hover {
+        transform: scale(1.02);
+        background-color: #1937AD !important;
+        color: white !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 class AxiomPDF(FPDF):
@@ -794,32 +836,38 @@ def main():
             return
 
         try:
-            # Direct Data Load: Read CSV directly into dataframe
-            df = pd.read_csv(uploaded_file)
+            # Use the new process_upload function to handle file uploads safely
+            file_content = process_upload(uploaded_file)
             
-            if df.empty:
-                st.error("The uploaded CSV contains no rows. Please provide a file with data.")
+            if file_content.startswith("Error:"):
+                st.error(f"File processing error: {file_content}")
                 return
 
             data_label = f"Uploaded file: {uploaded_file.name}"
 
-            st.success("CSV loaded successfully.")
+            st.success("File loaded successfully.")
 
             # The Forensic View: Create a simple table to display this data
             st.markdown("---")
             st.subheader("Data Preview")
             st.caption(data_label)
-            st.dataframe(df, use_container_width=True)
+            
+            # Check if it's a CSV file and display as dataframe
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(io.BytesIO(uploaded_file.getvalue()))
+                st.dataframe(df, use_container_width=True)
+            else:
+                st.text_area("File Content", file_content, height=300)
 
             # Bypass the Engine: Skip main.py and timestamp_check.py completely
             # Direct AI Analysis: Send the entire dataframe as a string directly to get_ai_insights
             
-            # Convert dataframe to string for AI analysis
-            df_string = df.to_string()
+            # Use the processed file content for AI analysis
+            df_string = file_content
             
             # Create a simplified result structure for the AI function
             result = {
-                'total_rows': len(df),
+                'total_rows': len(df) if uploaded_file.name.endswith('.csv') else 0,
                 'fraud_rows': 0,  # We're not running the fraud detection engine
                 'integrity_score': 100.0,  # Placeholder since we're bypassing the engine
             }
@@ -921,34 +969,13 @@ def main():
                 # Get current data context
                 if uploaded_file is not None:
                     try:
-                        file_content = uploaded_file.getvalue()
-                        file_type = get_file_type(file_content, uploaded_file.name)
+                        # Use the new process_upload function
+                        file_content = process_upload(uploaded_file)
                         
-                        if file_type == 'csv':
-                            # Handle CSV files
-                            df = pd.read_csv(uploaded_file)
-                            df_string = df.to_string()
-                            data_context = f"Current data ({uploaded_file.name}):\n{df_string}\n\n"
-                        elif file_type == 'pdf':
-                            # Handle PDF files with pdfplumber
-                            with pdfplumber.open(BytesIO(file_content)) as pdf:
-                                pdf_text = ""
-                                for page in pdf.pages:
-                                    text = page.extract_text()
-                                    if text:
-                                        pdf_text += text + "\n"
-                            
-                                # Extract PDF metadata
-                                metadata = pdf.metadata if pdf.metadata else {}
-                                metadata_text = ""
-                                if metadata:
-                                    metadata_text = "\nPDF Metadata:\n"
-                                    for key, value in metadata.items():
-                                        metadata_text += f"  {key}: {value}\n"
-                            
-                            data_context = f"Current PDF ({uploaded_file.name}):\n{pdf_text}\n{metadata_text}\n"
+                        if file_content.startswith("Error:"):
+                            data_context = f"Error loading data: {file_content}\n\n"
                         else:
-                            data_context = f"Current file ({uploaded_file.name}): Unsupported file type for text extraction.\n\n"
+                            data_context = f"Current file ({uploaded_file.name}):\n{file_content}\n\n"
                     except Exception as e:
                         data_context = f"Error loading data: {str(e)}\n\n"
                 else:
