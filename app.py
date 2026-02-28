@@ -445,6 +445,94 @@ def build_audit_pdf(
     return pdf_bytes
 
 
+def build_official_case_file(
+    file_hashes: dict,
+    ai_verdict: str,
+    evidence_summary: str,
+    file_name: str = "metadata_trap.pdf"
+) -> bytes:
+    """
+    Build the official Axiom Forge Forensic Record PDF.
+    """
+    pdf = AxiomPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # Header with official styling
+    pdf.set_fill_color(0, 0, 0)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.cell(0, 15, "AXIOM FORGE: OFFICIAL FORENSIC RECORD", ln=True, align="C", fill=True)
+    pdf.ln(5)
+
+    # Case Information
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, "Case Information", ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"File Analyzed: {file_name}", ln=True)
+    pdf.cell(0, 8, f"Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
+    pdf.ln(4)
+
+    # Hash IDs Section
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, "Hash IDs", ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"MD5: {file_hashes['md5']}", ln=True)
+    pdf.cell(0, 8, f"SHA-256: {file_hashes['sha256']}", ln=True)
+    pdf.ln(4)
+
+    # AI Final Verdict Section
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, "AI Final Verdict", ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.multi_cell(0, 6, ai_verdict)
+    pdf.ln(4)
+
+    # Evidence Summary Section
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, "Evidence Summary", ln=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.multi_cell(0, 6, evidence_summary)
+    pdf.ln(4)
+
+    # Footer with confidentiality notice
+    pdf.set_y(-20)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.cell(0, 10, "CONFIDENTIAL - Axiom Forge Forensic Division - Case File Generated", 0, 0, "C")
+
+    # Export PDF to bytes
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    return pdf_bytes
+
+
+def check_for_suspicious_content(text: str) -> bool:
+    """
+    Check if text contains suspicious keywords that should trigger red styling.
+    """
+    suspicious_keywords = ['admin-99', 'proxy-77', 'ghost', 'breach', 'hack', 'fraud', 'suspicious']
+    text_lower = text.lower()
+    return any(keyword in text_lower for keyword in suspicious_keywords)
+
+
+def get_verification_status(ai_text: str) -> tuple[str, str]:
+    """
+    Determine verification status based on AI analysis.
+    Returns (status_text, css_class)
+    """
+    if not ai_text:
+        return "SYSTEM STABLE", "badge-stable"
+    
+    ai_lower = ai_text.lower()
+    breach_indicators = ['breach', 'hack', 'fraud', 'suspicious', 'anomaly', 'malicious', 'compromised']
+    
+    if any(indicator in ai_lower for indicator in breach_indicators):
+        return "BREACH DETECTED", "badge-breach"
+    else:
+        return "SYSTEM STABLE", "badge-stable"
+
+
 def _handle_login():
     """Handle login logic"""
     username = st.session_state.get("username_input", "")
@@ -461,9 +549,98 @@ def _handle_login():
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
 
+    # Custom CSS for Dark Web Forensic Theme
+    st.markdown("""
+    <style>
+    /* Dark Web Theme */
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    
+    /* Neon Green Accents for Clean Data */
+    .clean-data {
+        color: #00ff00;
+        font-weight: bold;
+    }
+    
+    /* Flashing Red Borders for Suspicious Data */
+    .suspicious-data {
+        border: 2px solid #ff0000;
+        animation: pulse 1s infinite;
+        background-color: rgba(255, 0, 0, 0.1);
+    }
+    
+    @keyframes pulse {
+        0% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+        50% { border-color: #ffffff; box-shadow: 0 0 15px #ffffff; }
+        100% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
+    }
+    
+    /* Sidebar Styling */
+    .css-1d391kg {
+        background-color: #1a1d24;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #ffffff;
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background-color: #1a1d24;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background-color: #00ff00;
+        color: #0e1117;
+        box-shadow: 0 0 10px #00ff00;
+    }
+    
+    /* Verification Badge Styles */
+    .verification-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 14px;
+        text-align: center;
+    }
+    
+    .badge-stable {
+        background-color: #00ff00;
+        color: #0e1117;
+        border: 2px solid #00ff00;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    
+    .badge-breach {
+        background-color: #ff0000;
+        color: #ffffff;
+        border: 2px solid #ff0000;
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # Initialize chat messages in session state if not already present
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    # Initialize case file data in session state
+    if "case_file_data" not in st.session_state:
+        st.session_state.case_file_data = {}
 
     # Authentication check at the very beginning
     if not st.session_state.get("password_correct", False):
@@ -506,6 +683,10 @@ def main():
         "Upload a CSV or PDF file to perform direct forensic analysis bypassing complex audit logic."
     )
 
+    # Evidence Lock Sidebar
+    st.sidebar.markdown("### 🔒 Evidence Lock")
+    st.sidebar.markdown("---")
+    
     uploaded_file = st.sidebar.file_uploader(
         "Upload CSV or PDF for Direct Analysis", type=["csv", "pdf"]
     )
@@ -639,6 +820,33 @@ def main():
                     df_string=df_string,
                     dataset_label=data_label,
                     row_count=len(df),
+                )
+
+            # Verification Badge System
+            status_text, css_class = get_verification_status(ai_text)
+            st.markdown(f'<div class="verification-badge {css_class}">{status_text}</div>', unsafe_allow_html=True)
+            st.markdown("---")
+
+            # Case File Download Button
+            if uploaded_file is not None and ai_text:
+                file_hashes = calculate_file_hashes(file_content)
+                evidence_summary = f"File: {uploaded_file.name}\nRows: {len(df)}\nColumns: {len(df.columns)}\nAnalysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                
+                case_file_pdf = build_official_case_file(
+                    file_hashes=file_hashes,
+                    ai_verdict=ai_text,
+                    evidence_summary=evidence_summary,
+                    file_name=uploaded_file.name
+                )
+                
+                st.sidebar.markdown("---")
+                st.sidebar.subheader("📁 Case File")
+                st.sidebar.download_button(
+                    label="Download Official Case File",
+                    data=case_file_pdf,
+                    file_name=f"axiom_forge_case_{uploaded_file.name.replace('.pdf', '').replace('.csv', '')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    help="Download the official forensic record with hashes, AI verdict, and evidence summary"
                 )
 
             st.info(ai_text)
