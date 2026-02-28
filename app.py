@@ -48,12 +48,29 @@ def get_verification_status(ai_text: str) -> tuple[str, str]:
 def main():
     st.title("Axiom Forge Truth OS")
     
+    # Sidebar Login Section
+    st.sidebar.header("🔐 System Access")
+    operator_id = st.sidebar.text_input('Operator ID', type='password', placeholder="Enter access code")
+    
     # API Status Indicator in Sidebar
     api_key = os.getenv('GROQ_API_KEY')
     if api_key:
         st.sidebar.success("Key Loaded ✓")
     else:
         st.sidebar.error("Key Not Found ✗")
+    
+    # Only show app content if logged in
+    if not operator_id:
+        st.markdown("""
+        <div style='text-align: center; padding: 50px;'>
+            <h2>🔒 ACCESS RESTRICTED</h2>
+            <p>Please enter your Operator ID in the sidebar to access the system</p>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    st.sidebar.success(f"Welcome, Operator {operator_id}")
+    st.sidebar.divider()
     
     uploaded_file = st.sidebar.file_uploader("Upload Evidence", type=["csv", "pdf"])
 
@@ -64,6 +81,29 @@ def main():
         st.subheader("🛠️ Forensic Metadata & Integrity")
         hashes = calculate_file_hashes(file_content)
         st.code(f"MD5: {hashes['md5']}\nSHA-256: {hashes['sha256']}")
+
+        # Data Table for CSV files
+        if uploaded_file.name.endswith('.csv'):
+            try:
+                # Read CSV data
+                df = pd.read_csv(io.BytesIO(file_content))
+                
+                st.subheader("📊 Raw Data Analysis")
+                st.dataframe(df, use_container_width=True)
+                
+                # Visual Analytics
+                if 'Amount' in df.columns:
+                    st.subheader("📈 Amount Distribution")
+                    st.bar_chart(df['Amount'])
+                elif len(df.columns) > 0:
+                    # Use first numeric column for chart
+                    numeric_cols = df.select_dtypes(include=['number']).columns
+                    if len(numeric_cols) > 0:
+                        st.subheader(f"📈 {numeric_cols[0]} Distribution")
+                        st.bar_chart(df[numeric_cols[0]])
+                
+            except Exception as e:
+                st.warning(f"Could not parse CSV data: {str(e)}")
 
         if st.button("Run Forensic AI Analysis"):
             with st.spinner("Analyzing..."):
