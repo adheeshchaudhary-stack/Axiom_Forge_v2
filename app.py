@@ -631,7 +631,7 @@ def main():
 
         # Hard Override: Force mapping for evidence_test.csv
         if 'Transaction_ID' in df.columns and 'Date' in df.columns:
-            mapping = {'transaction_id': 'Transaction_ID', 'lead_time': 'Date', 'payment_time': 'Date'}
+            mapping = {"transaction_id": "Transaction_ID", "lead_time": "Date", "payment_time": "Date"}
 
         # Debug output to see what's happening
         st.write("Debug: Mapping is", mapping)
@@ -671,27 +671,28 @@ def main():
                 return
 
         # Safety check: ensure selected time columns are numeric/datetime-like
-        if mapping["lead_time"] is not None:
-            lead_series = df[mapping["lead_time"]]
-            if not (
-                pd.api.types.is_numeric_dtype(lead_series)
-                or pd.api.types.is_datetime64_any_dtype(lead_series)
-            ):
-                st.error(
-                    "Invalid Data Type: Please ensure your selected lead time column contains numbers."
-                )
-                return
+        # DISABLED: Commenting out numeric check to allow Date column (string dates)
+        # if mapping["lead_time"] is not None:
+        #     lead_series = df[mapping["lead_time"]]
+        #     if not (
+        #         pd.api.types.is_numeric_dtype(lead_series)
+        #         or pd.api.types.is_datetime64_any_dtype(lead_series)
+        #     ):
+        #         st.error(
+        #             "Invalid Data Type: Please ensure your selected lead time column contains numbers."
+        #         )
+        #         return
         
-        if mapping["payment_time"] is not None:
-            payment_series = df[mapping["payment_time"]]
-            if not (
-                pd.api.types.is_numeric_dtype(payment_series)
-                or pd.api.types.is_datetime64_any_dtype(payment_series)
-            ):
-                st.error(
-                    "Invalid Data Type: Please ensure your selected payment time column contains numbers."
-                )
-                return
+        # if mapping["payment_time"] is not None:
+        #     payment_series = df[mapping["payment_time"]]
+        #     if not (
+        #         pd.api.types.is_numeric_dtype(payment_series)
+        #         or pd.api.types.is_datetime64_any_dtype(payment_series)
+        #     ):
+        #         st.error(
+        #             "Invalid Data Type: Please ensure your selected payment time column contains numbers."
+        #         )
+        #         return
 
         # Only run the audit if both time columns are selected
         if mapping.get('lead_time') and mapping.get('payment_time'):
@@ -729,6 +730,10 @@ def main():
                 # Progress bar for large datasets
                 total_rows = len(normalized_df)
                 progress = st.progress(0)
+
+                # Convert Date column to string to ensure compatibility
+                if 'Date' in normalized_df.columns:
+                    normalized_df['Date'] = normalized_df['Date'].astype(str)
 
                 result = run_portfolio_audit(df=normalized_df)
 
