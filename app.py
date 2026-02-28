@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime
-from io import BytesIO
+from io import BytesIO, io
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -18,23 +18,17 @@ from forensics.forensic_tools import (
     get_file_type
 )
 
-import io
-
-def process_upload(uploaded_file):
-    try:
-        if uploaded_file.name.endswith('.csv'):
-            # Use io.BytesIO to wrap the bytearray so pandas can read it
-            df = pd.read_csv(io.BytesIO(uploaded_file.getvalue()))
-            return df.to_string()
-        elif uploaded_file.name.endswith('.pdf'):
-            # Use io.BytesIO so pdfplumber can treat it like a file
-            with pdfplumber.open(io.BytesIO(uploaded_file.getvalue())) as pdf:
-                text = ""
-                for page in pdf.pages:
-                    text += page.extract_text()
-            return text
-    except Exception as e:
-        return f"Error: {str(e)}"
+def get_data(file):
+    # Force conversion of the bytearray into a stream
+    raw_data = file.getvalue()
+    stream = io.BytesIO(raw_data)
+    if file.name.lower().endswith('.csv'):
+        return pd.read_csv(stream).to_string()
+    elif file.name.lower().endswith('.pdf'):
+        import pdfplumber
+        with pdfplumber.open(stream) as pdf:
+            return "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
+    return "Error: Unsupported File"
 
 
 load_dotenv()
@@ -42,27 +36,24 @@ load_dotenv()
 DEMO_USERNAME = "Admin"
 DEMO_PASSWORD = "Axiom99"
 
-# Force the Animation
+# The "OneText" Kinetic Reveal
 st.markdown("""
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(30px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .main .block-container {
-        animation: fadeInUp 1s ease-out;
-    }
-    /* OneText Pill Buttons */
-    .stButton>button {
-        border-radius: 50px !important;
-        border: 1px solid #1937AD !important;
-        transition: all 0.3s ease !important;
-    }
-    .stButton>button:hover {
-        transform: scale(1.02);
-        background-color: #1937AD !important;
-        color: white !important;
-    }
+@keyframes oneText {
+    0% { opacity: 0; transform: translateY(30px) scale(1.03); filter: blur(15px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.main .block-container { animation: oneText 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+[data-testid="stSidebar"] { animation: oneText 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+[data-testid="stAppViewContainer"] {
+    background-color: #EFEEE3 !important;
+    color: #030409 !important;
+}
+/* Pill Buttons */
+.stButton>button {
+    border-radius: 99px !important;
+    transition: all 0.3s ease !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -255,6 +246,9 @@ def get_direct_ai_insights(
 
     client = Groq(api_key=api_key)
 
+    # AI Payload: Ensure the groq call uses str(extracted_text).encode('utf-8', errors='ignore').decode('utf-8')
+    clean_df_string = str(df_string).encode('utf-8', errors='ignore').decode('utf-8')
+
     prompt = f"""
 You are a forensic investigator analyzing this dataset. Look at this data and find any anomalies in dates or locations.
 
@@ -262,7 +256,7 @@ Dataset: {dataset_label}
 Rows analyzed: {row_count}
 
 Here is the complete dataset:
-{df_string}
+{clean_df_string}
 
 Please analyze this data and provide a detailed forensic report focusing on:
 1. Any suspicious patterns in dates/times
@@ -836,11 +830,11 @@ def main():
             return
 
         try:
-            # Use the new process_upload function to handle file uploads safely
-            file_content = process_upload(uploaded_file)
+            # Use the new get_data function to handle file uploads safely
+            file_content = get_data(uploaded_file)
             
             if file_content.startswith("Error:"):
-                st.error(f"File processing error: {file_content}")
+                st.warning(f"File processing error: {file_content}")
                 return
 
             data_label = f"Uploaded file: {uploaded_file.name}"
@@ -875,8 +869,8 @@ def main():
             # Create empty fraud_df since we're not running the fraud detection engine
             fraud_df = pd.DataFrame()
             
-            # Use st.status for the analysis phase with scanning animation
-            with st.status("Scanning data for anomalies...", expanded=True) as status:
+            # Status Indicators: Use st.status("Analyzing Evidence...") while the AI works
+            with st.status("Analyzing Evidence...", expanded=True) as status:
                 st.write("🔍 Analyzing transaction patterns...")
                 st.write("📊 Checking date/time consistency...")
                 st.write("📍 Validating location data...")
@@ -919,31 +913,33 @@ def main():
                     help="Download the official forensic record with hashes, AI verdict, and evidence summary"
                 )
 
-            st.info(ai_text)
+            # Container Logic: Wrap forensic results in st.container()
+            with st.container():
+                st.info(ai_text)
 
-            st.markdown("---")
-            st.subheader("Forensic Findings")
+                st.markdown("---")
+                st.subheader("Forensic Findings")
 
-            if df.empty:
-                st.info("No data to analyze.")
-            else:
-                # Display basic statistics
-                st.write(f"**Total Rows:** {len(df)}")
-                st.write(f"**Total Columns:** {len(df.columns)}")
-                st.write(f"**Column Names:** {', '.join(df.columns)}")
+                if df.empty:
+                    st.info("No data to analyze.")
+                else:
+                    # Display basic statistics
+                    st.write(f"**Total Rows:** {len(df)}")
+                    st.write(f"**Total Columns:** {len(df.columns)}")
+                    st.write(f"**Column Names:** {', '.join(df.columns)}")
 
-                # Show data types
-                st.write("**Data Types:**")
-                st.write(df.dtypes)
+                    # Show data types
+                    st.write("**Data Types:**")
+                    st.write(df.dtypes)
 
-                # Show basic statistics for numeric columns
-                numeric_cols = df.select_dtypes(include=['number']).columns
-                if len(numeric_cols) > 0:
-                    st.write("**Basic Statistics for Numeric Columns:**")
-                    st.write(df[numeric_cols].describe())
+                    # Show basic statistics for numeric columns
+                    numeric_cols = df.select_dtypes(include=['number']).columns
+                    if len(numeric_cols) > 0:
+                        st.write("**Basic Statistics for Numeric Columns:**")
+                        st.write(df[numeric_cols].describe())
 
         except Exception as e:
-            st.error(f"Error processing the uploaded file: {str(e)}")
+            st.warning(f"Error processing the uploaded file: {str(e)}")
 
     # Chat Interface Section
     st.markdown("---")
