@@ -17,6 +17,10 @@ def calculate_file_hashes(file_content: bytes) -> Dict[str, str]:
     Returns:
         Dictionary containing MD5 and SHA-256 hashes
     """
+    # Ensure we have bytes, not string
+    if isinstance(file_content, str):
+        file_content = file_content.encode('utf-8')
+    
     md5_hash = hashlib.md5()
     sha256_hash = hashlib.sha256()
     

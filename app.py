@@ -1,7 +1,7 @@
+import io
 import os
 import random
 from datetime import datetime
-from io import BytesIO, io
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -18,17 +18,21 @@ from forensics.forensic_tools import (
     get_file_type
 )
 
-def get_data(file):
-    # Force conversion of the bytearray into a stream
-    raw_data = file.getvalue()
-    stream = io.BytesIO(raw_data)
-    if file.name.lower().endswith('.csv'):
-        return pd.read_csv(stream).to_string()
-    elif file.name.lower().endswith('.pdf'):
-        import pdfplumber
+def get_text_from_file(uploaded_file):
+    # Strict Routing: Clear if/elif block for file type handling
+    file_bytes = uploaded_file.getvalue()
+    stream = io.BytesIO(file_bytes)
+    
+    if uploaded_file.name.lower().endswith('.csv'):
+        # CSV Processing: Only use pd.read_csv with on_bad_lines='skip'
+        df = pd.read_csv(stream, on_bad_lines='skip')
+        return df.to_string()
+    elif uploaded_file.name.lower().endswith('.pdf'):
+        # PDF Processing: Only use pdfplumber
         with pdfplumber.open(stream) as pdf:
             return "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
-    return "Error: Unsupported File"
+    else:
+        return "Unsupported File Format"
 
 
 load_dotenv()
@@ -36,23 +40,24 @@ load_dotenv()
 DEMO_USERNAME = "Admin"
 DEMO_PASSWORD = "Axiom99"
 
-# The "OneText" Kinetic Reveal
 st.markdown("""
 <style>
-@keyframes oneText {
-    0% { opacity: 0; transform: translateY(30px) scale(1.03); filter: blur(15px); }
-    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-}
-.main .block-container { animation: oneText 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
-[data-testid="stSidebar"] { animation: oneText 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
 [data-testid="stAppViewContainer"] {
     background-color: #EFEEE3 !important;
-    color: #030409 !important;
 }
-/* Pill Buttons */
+@keyframes oneTextReveal {
+    0% { opacity: 0; transform: translateY(40px) scale(1.02); filter: blur(15px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.main .block-container {
+    animation: oneTextReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 .stButton>button {
     border-radius: 99px !important;
-    transition: all 0.3s ease !important;
+    background-color: #1937AD !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.4s ease !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -246,8 +251,11 @@ def get_direct_ai_insights(
 
     client = Groq(api_key=api_key)
 
-    # AI Payload: Ensure the groq call uses str(extracted_text).encode('utf-8', errors='ignore').decode('utf-8')
-    clean_df_string = str(df_string).encode('utf-8', errors='ignore').decode('utf-8')
+    # AI Payload: Handle bytearray/bytes data safely
+    if isinstance(df_string, (bytes, bytearray)):
+        clean_df_string = df_string.decode('utf-8', errors='ignore')
+    else:
+        clean_df_string = str(df_string)
 
     prompt = f"""
 You are a forensic investigator analyzing this dataset. Look at this data and find any anomalies in dates or locations.
@@ -477,7 +485,7 @@ def build_audit_pdf(
         )
 
     # Export PDF to bytes
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    pdf_bytes = pdf.output(dest="S")
     return pdf_bytes
 
 
@@ -539,7 +547,7 @@ def build_official_case_file(
     pdf.cell(0, 10, "CONFIDENTIAL - Axiom Forge Forensic Division - Case File Generated", 0, 0, "C")
 
     # Export PDF to bytes
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    pdf_bytes = pdf.output(dest="S")
     return pdf_bytes
 
 
@@ -585,98 +593,30 @@ def _handle_login():
 def main():
     st.set_page_config(page_title="Axiom Forge Truth OS", layout="centered")
 
-    # Custom CSS for OneText Theme Micro-Interactions - Force load at top
+    # The "OneText" Kinetic Reveal - Refined Version
     st.markdown("""
     <style>
-    /* Force animations on entire page */
-    [data-testid="stAppViewContainer"] {
-        animation: fadeInUp 0.5s ease-in-out;
+    @keyframes oneTextReveal {
+        0% { opacity: 0; transform: translateY(30px) scale(1.02); filter: blur(15px); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
     }
-    
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .main .block-container {
+        background-color: #EFEEE3;
+        animation: oneTextReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    
-    /* Pulse Effect for BREACH DETECTED */
-    .breach-pulse {
-        animation: pulse 3s infinite;
+    [data-testid="stSidebar"] {
+        background-color: #E5E4D7 !important;
+        animation: oneTextReveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     }
-    
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-        }
-        70% {
-            transform: scale(1.02);
-            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-        }
-        100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-        }
+    .stButton>button {
+        border-radius: 99px !important;
+        background-color: #1937AD !important;
+        color: white !important;
+        padding: 0.5rem 2rem !important;
+        border: none !important;
+        transition: all 0.4s ease !important;
     }
-    
-    /* OneText Polish: Pill-shaped buttons with smooth transitions */
-    .stButton > button {
-        border-radius: 20px !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .stButton > button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
-    }
-    
-    /* Centered Title Styling */
-    .title-container {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    
-    .title-container h1 {
-        margin-bottom: 10px;
-    }
-    
-    .title-divider {
-        width: 60px;
-        height: 2px;
-        background-color: #3B82F6;
-        margin: 10px auto;
-        border-radius: 1px;
-    }
-    
-    /* Verification Badge Styling */
-    .verification-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 14px;
-        text-align: center;
-        margin: 10px 0;
-        transition: all 0.3s ease;
-    }
-    
-    .badge-stable {
-        background-color: #10b981;
-        color: #065f46;
-        border: 1px solid #059669;
-    }
-    
-    .badge-breach {
-        background-color: #ef4444;
-        color: #7f1d1d;
-        border: 1px solid #dc2626;
-        animation: pulse 3s infinite;
-    }
+    .stButton>button:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(25, 55, 173, 0.2); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -746,8 +686,9 @@ def main():
         st.markdown("---")
         st.subheader("🛠️ Forensic Metadata & Integrity")
         
-        # Calculate file hashes
-        file_content = uploaded_file.getvalue()
+        # Calculate file hashes - The Hashing Fix: Pass raw uploaded_file.getvalue() directly into hashlib.sha256(). Do NOT encode it.
+        file_content = uploaded_file.getvalue() # This is a bytearray
+        # Ensure the hashing tool handles the bytearray directly
         hashes = calculate_file_hashes(file_content)
         
         # Display file integrity information
@@ -757,7 +698,7 @@ def main():
             st.code(f"MD5: {hashes['md5']}")
             st.code(f"SHA-256: {hashes['sha256']}")
         
-        # Extract metadata based on file type
+        # Metadata Routing: If the file is a CSV, skip the pdfplumber metadata check to avoid the 'unknown type' error.
         file_type = get_file_type(file_content, uploaded_file.name)
         
         if file_type == 'pdf':
@@ -819,6 +760,10 @@ def main():
                     else:
                         st.info("No EXIF data found in this image.")
         
+        elif file_type == 'csv':
+            with col2:
+                st.info("CSV files do not contain metadata. Hashes calculated for integrity verification.")
+        
         else:
             with col2:
                 st.info(f"File type '{file_type}' not supported for metadata extraction. Hashes calculated for integrity verification.")
@@ -830,8 +775,8 @@ def main():
             return
 
         try:
-            # Use the new get_data function to handle file uploads safely
-            file_content = get_data(uploaded_file)
+            # Use the new get_text_from_file function to handle file uploads safely
+            file_content = get_text_from_file(uploaded_file)
             
             if file_content.startswith("Error:"):
                 st.warning(f"File processing error: {file_content}")
@@ -965,13 +910,11 @@ def main():
                 # Get current data context
                 if uploaded_file is not None:
                     try:
-                        # Use the new process_upload function
-                        file_content = process_upload(uploaded_file)
+                        # The Clean String Pipeline: Convert bytes to string ONCE using decode, then never touch .encode() again
+                        raw_bytes = uploaded_file.getvalue()
+                        clean_text = raw_bytes.decode('utf-8', errors='ignore')
                         
-                        if file_content.startswith("Error:"):
-                            data_context = f"Error loading data: {file_content}\n\n"
-                        else:
-                            data_context = f"Current file ({uploaded_file.name}):\n{file_content}\n\n"
+                        data_context = f"Current file ({uploaded_file.name}):\n{clean_text}\n\n"
                     except Exception as e:
                         data_context = f"Error loading data: {str(e)}\n\n"
                 else:
