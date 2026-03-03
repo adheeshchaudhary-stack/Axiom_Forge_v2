@@ -1,0 +1,182 @@
+/* Axiom Forge Truth OS - Terminal UI Theme */
+
+:root {
+    --primary: #00FF41; /* Matrix Green */
+    --secondary: #008F11; /* Darker Green for secondary text */
+    --background: #050505; /* Pure Black/Near Black */
+    --sidebar-bg: #0a0a0a; /* Sidebar background */
+    --card-bg: #111111; /* Card background */
+    --text-main: #00FF41; /* Matrix Green for primary text */
+    --text-secondary: #008F11; /* Darker Green for secondary text */
+    --border: #00FF41; /* Neon green border */
+    --font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+}
+
+/* Global Styles */
+.stApp {
+    background-color: var(--background) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-family) !important;
+}
+
+/* Sidebar Styling */
+[data-testid="stSidebar"] {
+    background-color: var(--sidebar-bg) !important;
+    border-right: 2px solid var(--border) !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown h2 {
+    color: var(--text-main) !important;
+    font-size: 1.2rem !important;
+    font-weight: 600 !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Main Title Styling */
+.main-title {
+    font-size: 3rem !important;
+    font-weight: 700 !important;
+    color: var(--text-main) !important;
+    text-align: center;
+    margin-top: 2rem !important;
+    margin-bottom: 0.5rem !important;
+    text-shadow: 0 0 10px var(--primary);
+    letter-spacing: 2px;
+}
+
+.sub-title {
+    color: var(--text-secondary) !important;
+    font-size: 1.1rem !important;
+    text-align: center;
+    margin-bottom: 3rem !important;
+}
+
+/* File Uploader / Drag & Drop Area */
+[data-testid="stFileUploader"] {
+    background-color: var(--card-bg) !important;
+    border: 2px dashed var(--border) !important;
+    border-radius: 2px !important;
+    padding: 2rem !important;
+}
+
+.stFileUploaderDropzone {
+    background-color: transparent !important;
+}
+
+/* Chat Input Styling */
+.stChatInputContainer {
+    padding-bottom: 30px !important;
+    background-color: transparent !important;
+}
+
+[data-testid="stChatInput"] {
+    border-radius: 2px !important;
+    border: 1px solid var(--border) !important;
+    background-color: #000000 !important;
+    color: var(--text-main) !important;
+    padding: 10px 20px !important;
+}
+
+/* Buttons */
+.stButton>button {
+    width: 100% !important;
+    background-color: #000000 !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stButton>button:hover {
+    border-color: var(--primary) !important;
+    background-color: #000000 !important;
+}
+
+/* Horizontal Rule / Divider */
+hr {
+    border-top: 1px solid var(--border) !important;
+    margin: 2rem 0 !important;
+}
+
+/* Section Header Styling */
+.section-header {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    color: var(--text-main) !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Metric Cards */
+[data-testid="stMetric"] {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    padding: 1.5rem !important;
+    border-radius: 2px !important;
+}
+
+/* Remove default Streamlit padding at the top */
+.block-container {
+    padding-top: 3rem !important;
+}
+
+/* Additional styling to kill bright elements */
+[data-testid="stMetric"] .metric-label {
+    color: var(--text-secondary) !important;
+}
+
+[data-testid="stMetric"] .metric-value {
+    color: var(--text-main) !important;
+}
+
+/* Input fields styling */
+input[type="text"], input[type="password"] {
+    background-color: #000000 !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    font-family: var(--font-family) !important;
+}
+
+/* Text areas styling */
+textarea {
+    background-color: #000000 !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    font-family: var(--font-family) !important;
+}
+
+/* Expander styling */
+.st-expander {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+}
+
+.st-expander .st-expanderHeader {
+    color: var(--text-main) !important;
+    font-family: var(--font-family) !important;
+}
+
+/* Status indicators */
+.stStatusWidget {
+    border: 1px solid var(--border) !important;
+    background-color: var(--card-bg) !important;
+    border-radius: 2px !important;
+}
+
+/* Success/Error messages */
+.stSuccess, .stError, .stWarning, .stInfo {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    color: var(--text-main) !important;
+}

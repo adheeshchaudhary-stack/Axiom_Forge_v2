@@ -1,83 +1,84 @@
 import hashlib
-import os
-from typing import Dict, Any
-from pypdf import PdfReader
+import magic
+import logging
+from typing import Dict, Tuple, Optional
 
-def calculate_file_hashes(file_content: bytes) -> Dict[str, str]:
-    """Calculate MD5 and SHA-256 hashes of file content."""
-    # Ensure content is bytes
-    if isinstance(file_content, bytearray):
-        file_content = bytes(file_content)
+def calculate_file_hashes(data: bytes) -> Dict[str, str]:
+    """
+    Calculate MD5 and SHA-256 hashes of file data.
     
-    md5_hash = hashlib.md5(file_content).hexdigest()
-    sha256_hash = hashlib.sha256(file_content).hexdigest()
-    
-    return {
-        'md5': md5_hash,
-        'sha256': sha256_hash
-    }
-
-def get_file_type(file_content: bytes, file_name: str) -> str:
-    """Determine file type based on content and extension."""
-    # Ensure content is bytes
-    if isinstance(file_content, bytearray):
-        file_content = bytes(file_content)
-    
-    # Check file extension first
-    if file_name.lower().endswith('.pdf'):
-        return 'PDF'
-    elif file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
-        return 'Image'
-    elif file_name.lower().endswith('.csv'):
-        return 'CSV'
-    elif file_name.lower().endswith('.txt'):
-        return 'Text'
-    
-    # Fallback to magic numbers
-    if file_content.startswith(b'%PDF'):
-        return 'PDF'
-    elif file_content.startswith(b'\x89PNG'):
-        return 'Image'
-    elif file_content.startswith(b'\xff\xd8\xff'):
-        return 'Image'
-    elif b',' in file_content[:100]:  # Simple CSV detection
-        return 'CSV'
-    
-    return 'Unknown'
-
-def extract_pdf_metadata(file_content: bytes) -> Dict[str, Any]:
-    """Extract metadata from PDF files."""
-    # Ensure content is bytes
-    if isinstance(file_content, bytearray):
-        file_content = bytes(file_content)
-    
-    try:
-        pdf_reader = PdfReader(io.BytesIO(file_content))
-        metadata = pdf_reader.metadata
+    Args:
+        data (bytes): File content as bytes
         
-        if metadata:
-            return {
-                'title': metadata.get('/Title', 'N/A'),
-                'author': metadata.get('/Author', 'N/A'),
-                'creator': metadata.get('/Creator', 'N/A'),
-                'producer': metadata.get('/Producer', 'N/A'),
-                'creation_date': metadata.get('/CreationDate', 'N/A'),
-                'modification_date': metadata.get('/ModDate', 'N/A'),
-                'pages': len(pdf_reader.pages)
-            }
-        else:
-            return {'error': 'No metadata found'}
+    Returns:
+        Dict[str, str]: Dictionary containing hash values
+    """
+    try:
+        md5_hash = hashlib.md5(data).hexdigest()
+        sha256_hash = hashlib.sha256(data).hexdigest()
+        
+        return {
+            'md5': md5_hash,
+            'sha256': sha256_hash
+        }
     except Exception as e:
-        return {'error': f'Failed to extract PDF metadata: {str(e)}'}
+        logging.error(f"Error calculating file hashes: {e}")
+        return {'md5': 'Error', 'sha256': 'Error'}
 
-def extract_image_metadata(file_content: bytes) -> Dict[str, Any]:
-    """Extract metadata from image files."""
-    # Ensure content is bytes
-    if isinstance(file_content, bytearray):
-        file_content = bytes(file_content)
+def get_file_type(data: bytes) -> Dict[str, str]:
+    """
+    Identify file type using Magic Byte analysis.
     
-    # Image metadata extraction not available (PIL not in approved libraries)
-    return {'error': 'Image metadata extraction not available - PIL not in approved libraries'}
+    Args:
+        data (bytes): File content as bytes
+        
+    Returns:
+        Dict[str, str]: Dictionary containing file type information
+    """
+    try:
+        # Get MIME type
+        mime_type = magic.from_buffer(data, mime=True)
+        
+        # Get human-readable description
+        file_description = magic.from_buffer(data)
+        
+        return {
+            'mime_type': mime_type,
+            'description': file_description
+        }
+    except Exception as e:
+        logging.error(f"Error identifying file type: {e}")
+        return {'mime_type': 'Unknown', 'description': 'Error'}
 
-# Import required modules
-import io
+def analyze_file_metadata(file_path: str) -> Optional[Dict]:
+    """
+    Comprehensive file analysis including hashes and type identification.
+    
+    Args:
+        file_path (str): Path to the file to analyze
+        
+    Returns:
+        Optional[Dict]: File metadata or None if analysis fails
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+        
+        # Get file size
+        file_size = len(file_data)
+        
+        # Calculate hashes
+        hashes = calculate_file_hashes(file_data)
+        
+        # Get file type
+        file_type = get_file_type(file_data)
+        
+        return {
+            'path': file_path,
+            'size': file_size,
+            'hashes': hashes,
+            'type': file_type
+        }
+    except Exception as e:
+        logging.error(f"Error analyzing file {file_path}: {e}")
+        return None
